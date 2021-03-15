@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="git-local" uploadOnCheckin="6813fa08-fe91-4105-8d65-6bcc07c2fa69" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="git-local">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myUploadOnCheckinName" value="git-local" />
+  </component>
+</project>
