@@ -8,8 +8,8 @@ fn main() {
     println!("Hello, world!");
     let message = "Hello World!";
 
-    let mut key: [u8; 32] = [0; 32];
-    let mut iv: [u8; 16] = [0; 16];
+    let mut key: [u8; 16] = [0; 16];
+    let mut iv: [u8; 12] = [0; 12];
 
     // In a real program, the key and iv may be determined
     // using some other mechanism. If a password is to be used
@@ -21,14 +21,16 @@ fn main() {
     OsRng.fill_bytes(&mut key);
     OsRng.fill_bytes(&mut iv);
 
-    let encrypted_data = cipher::encrypt(message.as_bytes(), &key, &iv).ok().unwrap();
-    println!("{:?}", encrypted_data);
-    let decrypted_data = cipher::decrypt(&encrypted_data[..], &key, &iv).ok().unwrap();
+    let encrypted_data = cipher::encrypt_aesgcm(message.as_bytes(), &key, &iv).ok().unwrap();
+    println!("cipher text: {:?}", encrypted_data);
+    let decrypted_data = cipher::decrypt_aesgcm(&encrypted_data[..], &key, &iv).ok().unwrap();
+    println!("decrpyted text: {:?}", decrypted_data);
+
     let s = match String::from_utf8(decrypted_data) {
         Ok(v) => v,
         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
     };
-    println!("{:}", s);
+    println!("decrpyted text: {:}", s);
 
     // assert!(message.as_bytes() == &decrypted_data[..]);
 }

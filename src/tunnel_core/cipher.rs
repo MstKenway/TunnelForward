@@ -1,6 +1,9 @@
-use crypto::{symmetriccipher, buffer, aes, blockmodes};
+use crypto::{symmetriccipher, buffer, aes, blockmodes, aes_gcm};
 use crypto::buffer::{ReadBuffer, WriteBuffer, BufferResult};
+use crypto::aead::{AeadEncryptor, AeadDecryptor};
 
+
+static AAD: [u8; 16] = [0; 16];
 
 // Encrypt a buffer with the given key and iv using
 // AES-256/CBC/Pkcs encryption.
@@ -90,5 +93,74 @@ pub fn decrypt(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, 
         }
     }
 
+    Ok(final_result)
+}
+
+
+// Encrypt a buffer with the given key and iv using
+// AES-128/GCM.
+pub fn encrypt_aesgcm(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+    let mut tag: [u8; 16] = [0; 16];
+
+    // Create an encryptor instance of the best performing
+    // type available for the platform.
+    let mut encryptor = aes_gcm::AesGcm::new(
+        aes::KeySize::KeySize128,
+        key,
+        iv,
+        &AAD[..]);
+
+    // Each encryption operation encrypts some data from
+    // an input buffer into an output buffer. Those buffers
+    // must be instances of RefReaderBuffer and RefWriteBuffer
+    // (respectively) which keep track of how much data has been
+    // read from or written to them.
+    let mut final_result = vec![0; data.len()];
+    assert_eq!(data.len(), final_result.len());
+
+    // Each encryption operation will "make progress". "Making progress"
+    // is a bit loosely defined, but basically, at the end of each operation
+    // either BufferUnderflow or BufferOverflow will be returned (unless
+    // there was an error). If the return value is BufferUnderflow, it means
+    // that the operation ended while wanting more input data. If the return
+    // value is BufferOverflow, it means that the operation ended because it
+    // needed more space to output data. As long as the next call to the encryption
+    // operation provides the space that was requested (either more input data
+    // or more output space), the operation is guaranteed to get closer to
+    // completing the full operation - ie: "make progress".
+    //
+    // Here, we pass the data to encrypt to the enryptor along with a fixed-size
+    // output buffer. The 'true' flag indicates that the end of the data that
+    // is to be encrypted is included in the input buffer (which is true, since
+    // the input data includes all the data to encrypt). After each call, we copy
+    // any output data to our result Vec. If we get a BufferOverflow, we keep
+    // going in the loop since it means that there is more work to do. We can
+    // complete as soon as we get a BufferUnderflow since the encryptor is telling
+    // us that it stopped processing data due to not having any more data in the
+    // input buffer.
+    encryptor.encrypt(data, &mut final_result[..], &mut tag[..]);
+
+    Ok(final_result)
+}
+
+// Decrypts a buffer with the given key and iv using
+// AES-256/CBC/Pkcs encryption.
+//
+// This function is very similar to encrypt(), so, please reference
+// comments in that function. In non-example code, if desired, it is possible to
+// share much of the implementation using closures to hide the operation
+// being performed. However, such code would make this example less clear.
+pub fn decrypt_aesgcm(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+    let mut tag: [u8; 16] = [0; 16];
+    let mut decryptor = aes_gcm::AesGcm::new(
+        aes::KeySize::KeySize128,
+        key,
+        iv,
+        &AAD[..]);
+
+    let mut final_result = vec![0; encrypted_data.len()];
+
+    let result = decryptor.decrypt(encrypted_data, &mut final_result[..], &tag[..]);
+    if result {}
     Ok(final_result)
 }
