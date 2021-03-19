@@ -117,29 +117,8 @@ pub fn encrypt_aesgcm(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, sym
     // read from or written to them.
     let mut final_result = vec![0; data.len()];
     assert_eq!(data.len(), final_result.len());
-
-    // Each encryption operation will "make progress". "Making progress"
-    // is a bit loosely defined, but basically, at the end of each operation
-    // either BufferUnderflow or BufferOverflow will be returned (unless
-    // there was an error). If the return value is BufferUnderflow, it means
-    // that the operation ended while wanting more input data. If the return
-    // value is BufferOverflow, it means that the operation ended because it
-    // needed more space to output data. As long as the next call to the encryption
-    // operation provides the space that was requested (either more input data
-    // or more output space), the operation is guaranteed to get closer to
-    // completing the full operation - ie: "make progress".
-    //
-    // Here, we pass the data to encrypt to the enryptor along with a fixed-size
-    // output buffer. The 'true' flag indicates that the end of the data that
-    // is to be encrypted is included in the input buffer (which is true, since
-    // the input data includes all the data to encrypt). After each call, we copy
-    // any output data to our result Vec. If we get a BufferOverflow, we keep
-    // going in the loop since it means that there is more work to do. We can
-    // complete as soon as we get a BufferUnderflow since the encryptor is telling
-    // us that it stopped processing data due to not having any more data in the
-    // input buffer.
     encryptor.encrypt(data, &mut final_result[..], &mut tag[..]);
-
+    final_result.append(&mut tag.to_vec());
     Ok(final_result)
 }
 
@@ -151,16 +130,17 @@ pub fn encrypt_aesgcm(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, sym
 // share much of the implementation using closures to hide the operation
 // being performed. However, such code would make this example less clear.
 pub fn decrypt_aesgcm(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
-    let mut tag: [u8; 16] = [0; 16];
     let mut decryptor = aes_gcm::AesGcm::new(
         aes::KeySize::KeySize128,
         key,
         iv,
         &AAD[..]);
+    let data_len = encrypted_data.len() - 16;
+    let mut final_result = vec![0; data_len];
 
-    let mut final_result = vec![0; encrypted_data.len()];
-
-    let result = decryptor.decrypt(encrypted_data, &mut final_result[..], &tag[..]);
-    if result {}
+    let result = decryptor.decrypt(&encrypted_data[..data_len], &mut final_result[..], &encrypted_data[data_len..]);
+    if !result {
+        println!("Something wrong with the decryption.");
+    }
     Ok(final_result)
 }

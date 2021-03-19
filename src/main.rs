@@ -21,11 +21,12 @@ fn main() {
     OsRng.fill_bytes(&mut key);
     OsRng.fill_bytes(&mut iv);
 
-    let encrypted_data = cipher::encrypt_aesgcm(message.as_bytes(), &key, &iv).ok().unwrap();
+    let mut encrypted_data = cipher::encrypt_aesgcm(message.as_bytes(), &key, &iv).ok().unwrap();
     println!("cipher text: {:?}", encrypted_data);
-    let decrypted_data = cipher::decrypt_aesgcm(&encrypted_data[..], &key, &iv).ok().unwrap();
-    println!("decrpyted text: {:?}", decrypted_data);
 
+    encrypted_data[0] = 0u8;
+
+    let decrypted_data = cipher::decrypt_aesgcm(&encrypted_data[..], &key, &iv).ok().unwrap();
     let s = match String::from_utf8(decrypted_data) {
         Ok(v) => v,
         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
