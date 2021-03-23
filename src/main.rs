@@ -5,8 +5,8 @@ use rand::rngs::OsRng;
 use tunnel_core::cipher;
 
 fn main() {
-    println!("Hello, world!");
-    let message = "Hello World!";
+    let message = "This is another test.";
+    println!("{}", message);
 
     let mut key: [u8; 16] = [0; 16];
     let mut iv: [u8; 12] = [0; 12];
@@ -21,12 +21,15 @@ fn main() {
     OsRng.fill_bytes(&mut key);
     OsRng.fill_bytes(&mut iv);
 
-    let mut encrypted_data = cipher::encrypt_aesgcm(message.as_bytes(), &key, &iv).ok().unwrap();
+
+    let mut encrypted_data = vec![0; message.len() + 16];
+    let mut result = cipher::encrypt_aesgcm(message.as_bytes(), &mut encrypted_data, &key, &iv).ok().unwrap_or(0);
     println!("cipher text: {:?}", encrypted_data);
 
-    encrypted_data[0] = 0u8;
+    // encrypted_data[0] = 0u8;
 
-    let decrypted_data = cipher::decrypt_aesgcm(&encrypted_data[..], &key, &iv).ok().unwrap();
+    let mut decrypted_data = vec![0; message.len()];
+    result = cipher::decrypt_aesgcm(&encrypted_data[..], &mut decrypted_data, &key, &iv).ok().unwrap_or(0);
     let s = match String::from_utf8(decrypted_data) {
         Ok(v) => v,
         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),

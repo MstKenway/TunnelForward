@@ -3,16 +3,20 @@ use crypto::buffer::{ReadBuffer, WriteBuffer, BufferResult};
 use crypto::aead::{AeadEncryptor, AeadDecryptor};
 
 
+// Const
+const TAG_LEN: usize = 16;
+
 static AAD: [u8; 16] = [0; 16];
 
+
 // Encrypt a buffer with the given key and iv using
-// AES-256/CBC/Pkcs encryption.
-pub fn encrypt(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+// AES-128/CBC/Pkcs encryption.
+pub fn encrypt_aescbc256(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
 
     // Create an encryptor instance of the best performing
     // type available for the platform.
     let mut encryptor = aes::cbc_encryptor(
-        aes::KeySize::KeySize256,
+        aes::KeySize::KeySize128,
         key,
         iv,
         blockmodes::PkcsPadding);
@@ -66,15 +70,15 @@ pub fn encrypt(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetricc
 }
 
 // Decrypts a buffer with the given key and iv using
-// AES-256/CBC/Pkcs encryption.
+// AES-128/CBC/Pkcs encryption.
 //
 // This function is very similar to encrypt(), so, please reference
 // comments in that function. In non-example code, if desired, it is possible to
 // share much of the implementation using closures to hide the operation
 // being performed. However, such code would make this example less clear.
-pub fn decrypt(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+pub fn decrypt_aescbc256(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
     let mut decryptor = aes::cbc_decryptor(
-        aes::KeySize::KeySize256,
+        aes::KeySize::KeySize128,
         key,
         iv,
         blockmodes::PkcsPadding);
@@ -99,9 +103,9 @@ pub fn decrypt(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, 
 
 // Encrypt a buffer with the given key and iv using
 // AES-128/GCM.
-pub fn encrypt_aesgcm(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
-    let mut tag: [u8; 16] = [0; 16];
-
+// The output memory needs to be assigned in advance. Usually the size is the length of plaintext + 16(Tag length).
+pub fn encrypt_aesgcm(input: &[u8], output: &mut [u8], key: &[u8], iv: &[u8]) -> Result<usize, symmetriccipher::SymmetricCipherError> {
+    let mut tag: [u8; TAG_LEN] = [0; TAG_LEN];
     // Create an encryptor instance of the best performing
     // type available for the platform.
     let mut encryptor = aes_gcm::AesGcm::new(
@@ -110,37 +114,26 @@ pub fn encrypt_aesgcm(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, sym
         iv,
         &AAD[..]);
 
-    // Each encryption operation encrypts some data from
-    // an input buffer into an output buffer. Those buffers
-    // must be instances of RefReaderBuffer and RefWriteBuffer
-    // (respectively) which keep track of how much data has been
-    // read from or written to them.
-    let mut final_result = vec![0; data.len()];
-    assert_eq!(data.len(), final_result.len());
-    encryptor.encrypt(data, &mut final_result[..], &mut tag[..]);
-    final_result.append(&mut tag.to_vec());
-    Ok(final_result)
+    let input_len = input.len();
+    encryptor.encrypt(input, &mut output[..input_len], &mut tag[..]);
+    output[input_len..].copy_from_slice(&tag.to_vec());
+    Ok(input_len + TAG_LEN)
 }
 
 // Decrypts a buffer with the given key and iv using
-// AES-256/CBC/Pkcs encryption.
-//
-// This function is very similar to encrypt(), so, please reference
-// comments in that function. In non-example code, if desired, it is possible to
-// share much of the implementation using closures to hide the operation
-// being performed. However, such code would make this example less clear.
-pub fn decrypt_aesgcm(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+// AES-128/GCM.
+// The output memory needs to be assigned in advance. Usually the size is the length of ciphertext - 16(Tag length).
+pub fn decrypt_aesgcm(input: &[u8], output: &mut [u8], key: &[u8], iv: &[u8]) -> Result<usize, symmetriccipher::SymmetricCipherError> {
     let mut decryptor = aes_gcm::AesGcm::new(
         aes::KeySize::KeySize128,
         key,
         iv,
         &AAD[..]);
-    let data_len = encrypted_data.len() - 16;
-    let mut final_result = vec![0; data_len];
-
-    let result = decryptor.decrypt(&encrypted_data[..data_len], &mut final_result[..], &encrypted_data[data_len..]);
+    let data_len = input.len() - 16;
+    let result = decryptor.decrypt(&input[..data_len], &mut output[..], &input[data_len..]);
     if !result {
         println!("Something wrong with the decryption.");
+        return Err(symmetriccipher::SymmetricCipherError::InvalidPadding);
     }
-    Ok(final_result)
+    Ok(data_len)
 }
