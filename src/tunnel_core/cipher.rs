@@ -1,6 +1,7 @@
 use crypto::{symmetriccipher, buffer, aes, blockmodes, aes_gcm};
 use crypto::buffer::{ReadBuffer, WriteBuffer, BufferResult};
 use crypto::aead::{AeadEncryptor, AeadDecryptor};
+use crypto::symmetriccipher::Encryptor;
 
 
 // Const
@@ -11,7 +12,7 @@ static AAD: [u8; 16] = [0; 16];
 
 // Encrypt a buffer with the given key and iv using
 // AES-128/CBC/Pkcs encryption.
-pub fn encrypt_aescbc256(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+pub fn encrypt_aescbc128(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
 
     // Create an encryptor instance of the best performing
     // type available for the platform.
@@ -76,7 +77,56 @@ pub fn encrypt_aescbc256(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, 
 // comments in that function. In non-example code, if desired, it is possible to
 // share much of the implementation using closures to hide the operation
 // being performed. However, such code would make this example less clear.
-pub fn decrypt_aescbc256(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+pub fn decrypt_aescbc128(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+    let mut decryptor = aes::cbc_decryptor(
+        aes::KeySize::KeySize128,
+        key,
+        iv,
+        blockmodes::PkcsPadding);
+
+    let mut final_result = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(encrypted_data);
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = decryptor.decrypt(&mut read_buffer, &mut write_buffer, true)?;
+        final_result.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => {}
+        }
+    }
+
+    Ok(final_result)
+}
+
+
+// Encrypt a buffer with the given key and iv using
+// AES-128/CBC/Pkcs encryption.
+pub fn encrypt_aesctr128(input: &[u8], output: &mut [u8], key: &[u8], iv: &[u8]) -> Result<usize, symmetriccipher::SymmetricCipherError> {
+
+    // Create an encryptor instance of the best performing
+    // type available for the platform.
+    let mut encryptor = aes::ctr(
+        aes::KeySize::KeySize128,
+        key,
+        iv);
+
+    let input_len = input.len();
+    encryptor.encrypt(input, &mut output[..input_len], &mut tag[..]);
+    output[input_len..].copy_from_slice(&tag.to_vec());
+    Ok(input_len + TAG_LEN)
+}
+
+// Decrypts a buffer with the given key and iv using
+// AES-128/CTR.
+//
+// This function is very similar to encrypt(), so, please reference
+// comments in that function. In non-example code, if desired, it is possible to
+// share much of the implementation using closures to hide the operation
+// being performed. However, such code would make this example less clear.
+pub fn decrypt_aesctr128(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
     let mut decryptor = aes::cbc_decryptor(
         aes::KeySize::KeySize128,
         key,
