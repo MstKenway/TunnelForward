@@ -1,4 +1,4 @@
-wget -o /usr/bin/TunnelForward https://github.com/MstKenway/TunnelForward/releases/download/0.0.5/TunnelForward_Go_linux_amd64
+wget -O /usr/bin/TunnelForward https://github.com/MstKenway/TunnelForward/releases/download/0.0.5/TunnelForward_Go_linux_amd64
 chmod +x /usr/bin/TunnelForward
 
 
