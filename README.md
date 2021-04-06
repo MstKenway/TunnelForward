@@ -7,10 +7,10 @@ chmod +x install_go.sh
 bash install_go.sh
 ```
 
----
----
 
-··· 
+
+
+··· shell
 Usage of TunnelForward:
   -a	Append the following config.json to the config.json file.
   -c	Server mode of the tunnel.(-tun need)
