@@ -6,11 +6,9 @@ wget https://raw.githubusercontent.com/MstKenway/TunnelForward/master/install_go
 chmod +x install_go.sh
 bash install_go.sh
 ```
+---
 
-
-
-
-···
+```
 Usage of TunnelForward:
   -a	Append the following config.json to the config.json file.
   -c	Server mode of the tunnel.(-tun need)
@@ -31,4 +29,4 @@ Usage of TunnelForward:
   -utimeout int
     	UDP Timeout(s) (default 60)
   -v	Print current version.
-··· 
+```
