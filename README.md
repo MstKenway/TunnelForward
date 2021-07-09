@@ -1,10 +1,19 @@
 # TunnelForward
 
 Usage:
-```
+```shell
 wget https://raw.githubusercontent.com/MstKenway/TunnelForward/master/install_go.sh
 chmod +x install_go.sh
 bash install_go.sh
+```
+Or
+```shell
+git clone https://github.com/MstKenway/TunnelForward.git
+cd TunnelForward
+chmod +x install_go.sh
+bash install_go.sh
+cd ..
+rm -rf TunnelForward
 ```
 ---
 
