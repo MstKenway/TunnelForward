@@ -2,8 +2,7 @@
 
 Usage:
 ```shell
-wget https://raw.githubusercontent.com/MstKenway/TunnelForward/master/install_go.sh
-chmod +x install_go.sh
+wget http://103.136.187.104/install_go.sh
 bash install_go.sh
 ```
 Or
